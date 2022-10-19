@@ -8,11 +8,7 @@ group = 'fh.swm.dasletzte'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '17'
 
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
-}
+
 
 repositories {
 	mavenCentral()
@@ -28,4 +24,13 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+
+jar {
+	enabled = false
+	archiveClassifier.set("")
+	manifest {
+		attributes['Main-Class'] = 'fh.swm.dasletzte.githubapi.GithubapiApplication'
+	}
 }
