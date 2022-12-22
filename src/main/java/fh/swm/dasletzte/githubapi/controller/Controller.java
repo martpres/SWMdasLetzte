@@ -1,4 +1,4 @@
-package controller;
+package fh.swm.dasletzte.githubapi.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
