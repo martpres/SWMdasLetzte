@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ApiResponse {
-    String repoUrl;
+public class GitHubRespone {
+    String login;
+    int id;
 }
