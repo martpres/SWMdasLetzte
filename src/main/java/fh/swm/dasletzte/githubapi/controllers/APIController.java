@@ -2,7 +2,6 @@ package fh.swm.dasletzte.githubapi.controllers;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fh.swm.dasletzte.githubapi.models.response.ApiResponse;
 import org.json.JSONArray;
@@ -16,8 +15,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +38,13 @@ public class APIController {
                 .build();
     }
 
+    /**
+     * This method is responsible for various repository operations
+     *
+     * @param paramHeaders authorization header with Bearer token
+     * @param postBody     json-formatted string with repo name
+     * @return response via http
+     */
     @PostMapping("/apiv2")
     public ResponseEntity<ApiResponse> createRepository(
             @RequestHeader Map<String, String> paramHeaders,
@@ -49,21 +53,23 @@ public class APIController {
         ObjectMapper objectMapper = new ObjectMapper();
         ApiResponse apiResponse = new ApiResponse();
         int statusCode = 0;
+        String statusErrorMessage = "";
         String htmlUrl = "";
-        String token = "";
-        String repoName= "";
+        String token = paramHeaders.get("authorization");
+        String repoName = "";
 
-        token = paramHeaders.get("authorization");
         repoName = postBody.get("repoName");
 
         Map<String, String> requestBodyMap = new HashMap<>();
-        requestBodyMap.put("name",repoName);
+        requestBodyMap.put("name", repoName);
 
         JSONObject jsonBody = new JSONObject();
         jsonBody.put("repoName", repoName);
 
-        if (token.isEmpty()){
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        // E5 TOKEN MISSING
+        if (token == null) {
+            apiResponse.setMessage("missing api token");
+            return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
         }
 
         System.out.println(token);
@@ -76,28 +82,31 @@ public class APIController {
 
         try {
             RestTemplate restTemplate = new RestTemplate();
+            // it could be, that the token has expired -> then we receive a 500 internal server error?
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
                     "https://api.github.com/user/repos", entity, String.class);
-
             statusCode = responseEntity.getStatusCodeValue();
             Map responseBodyMap = objectMapper.readValue(responseEntity.getBody(), Map.class);
             htmlUrl = responseBodyMap.get("html_url").toString();
         } catch (HttpClientErrorException ex) {
             statusCode = ex.getRawStatusCode();
-            // get message of the error
             Map<String, Object> bodyErrorMap = objectMapper.readValue(ex.getResponseBodyAsString(), Map.class);
             JSONObject json = new JSONObject(ex.getResponseBodyAsString());
             JSONArray jsonArray = json.getJSONArray("errors");
             JSONObject item = jsonArray.getJSONObject(0);
+            statusErrorMessage = item.get("message").toString();
             System.out.println(item.get("message"));
         }
         System.out.println("Status: " + statusCode);
 
-        if (statusCode == 201) {
+        // E7 SUCCESS
+        if (statusCode == 201 || statusCode == 200) {
             apiResponse.setRepoUrl(htmlUrl);
-            return new ResponseEntity<>(apiResponse, HttpStatus.OK);
-        } else if (statusCode == 401) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
+            // E1 REPO ALREADY EXISTS
+        } else if (statusCode == 422 && statusErrorMessage.equals("name already exists on this account")) {
+            apiResponse.setMessage(statusErrorMessage);
+            return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -137,12 +146,7 @@ public class APIController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    /**
-     * This method is responsible for various repository operations
-     *
-     * @param repo repository name
-     * @return response via http
-     */
+
 
     /*
     @PostMapping("/api")

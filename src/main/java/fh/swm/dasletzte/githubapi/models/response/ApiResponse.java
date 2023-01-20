@@ -7,4 +7,5 @@ import lombok.Setter;
 @Setter
 public class ApiResponse {
     String repoUrl;
+    String message;
 }
