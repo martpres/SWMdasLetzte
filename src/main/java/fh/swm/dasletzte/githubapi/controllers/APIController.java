@@ -13,29 +13,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.ConnectException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 public class APIController {
-    /*
-    Test variable for checking different if statements
-    -----
-    String responseTextGithub = "repoExists";
-    String responseTextGithub = "repoTimeout";
-    String responseTextGithub = "repoSpecialCharacter";
-    String responseTextGithub = "repoInvalidToken";
-    String responseTextGithub = "repoMissingToken";
-    String responseTextGithub = "repoMissingName";
-     */
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .setConnectTimeout(Duration.ofMillis(3000))
-                .setReadTimeout(Duration.ofMillis(3000))
+                .setConnectTimeout(Duration.ofMillis(0))
+                .setReadTimeout(Duration.ofMillis(0))
                 .build();
     }
 
@@ -86,26 +78,28 @@ public class APIController {
         try {
             // it could be, that the token has expired -> then we receive a 500 internal server error?
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
-                    "https://api.github.com/user/repos", entity, String.class);
+                    "https://api.github.at/user/repos", entity, String.class);
             statusCode = responseEntity.getStatusCodeValue();
             Map responseBodyMap = objectMapper.readValue(responseEntity.getBody(), Map.class);
             htmlUrl = responseBodyMap.get("html_url").toString();
-        } catch (HttpClientErrorException ex) {
-            statusCode = ex.getRawStatusCode();
+        } catch (HttpClientErrorException hcEx) {
+            System.err.println("error");
+            statusCode = hcEx.getRawStatusCode();
             try {
-                Map bodyErrorMap = objectMapper.readValue(ex.getResponseBodyAsString(), Map.class);
-                JSONObject json = new JSONObject(ex.getResponseBodyAsString());
+                Map bodyErrorMap = objectMapper.readValue(hcEx.getResponseBodyAsString(), Map.class);
+                JSONObject json = new JSONObject(hcEx.getResponseBodyAsString());
                 JSONArray jsonArray = json.getJSONArray("errors");
                 JSONObject item = jsonArray.getJSONObject(0);
                 statusErrorMessage = item.get("message").toString();
                 System.out.println(item.get("message"));
-            } catch (MismatchedInputException ex2) {
+            } catch (MismatchedInputException miEx) {
                 statusErrorMessage = "invalid token";
                 statusCode = 500;
             }
+        } catch (ResourceAccessException e) {
+            statusErrorMessage = "timeout access to github.com";
+            statusCode = 504;
         }
-
-        System.out.println("Status: " + statusCode);
 
         // E7 SUCCESS
         if (statusCode == 201 || statusCode == 200) {
@@ -119,37 +113,15 @@ public class APIController {
         } else if (statusCode == 500 && statusErrorMessage.equals("invalid token")) {
             apiResponse.setMessage(statusErrorMessage);
             return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
+            // E2 TIMEOUT ACCESS TO GITHUB.COM
+        } else if (statusCode == 504 && statusErrorMessage.equals("timeout access to github.com")) {
+            apiResponse.setMessage(statusErrorMessage);
+            return new ResponseEntity<>(apiResponse, HttpStatus.GATEWAY_TIMEOUT);
         }
 
         // E3 and general error since special characters will be process by GitHub
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
-
-
-    /**
-     * @GetMapping("/apiv2") public ResponseEntity<ApiResponse> createRepository(@RequestParam(value = "userId") String userId) {
-     * ApiResponse api = new ApiResponse();
-     * int statusCode = 0;
-     * <p>
-     * try {
-     * ResponseEntity<String> responseEntity = restTemplate.getForEntity(
-     * "https://api.github.com/users/" + userId, String.class);
-     * statusCode = responseEntity.getStatusCodeValue();
-     * } catch (HttpClientErrorException ex) {
-     * statusCode = ex.getRawStatusCode();
-     * }
-     * if (statusCode == 200) {
-     * api.setMessage("OK");
-     * return new ResponseEntity<>(api, HttpStatus.OK);
-     * } else {
-     * api.setMessage("NOK");
-     * return new ResponseEntity<>(api, HttpStatus.BAD_REQUEST);
-     * }
-     * //System.out.println("Request for user: " + userId);
-     * //System.out.println(responseEntity.getBody());
-     * <p>
-     * }
-     **/
 
     @GetMapping("/api")
     public ResponseEntity<String> getRepository(@RequestParam(value = "message") String message) {
@@ -158,48 +130,4 @@ public class APIController {
         }
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
-
-
-    /*
-    @PostMapping("/api")
-    public ResponseEntity<ApiResponse> createRepository(@RequestParam(value = "repo") String repo) {
-        ApiResponse api = new ApiResponse();
-        // E1 repo already exists
-        if (responseTextGithub.equals("repoExists")) {
-            api.setMessage("CONFLICT");
-            return new ResponseEntity<>(api, HttpStatus.CONFLICT);
-        }
-        // E2 timeout accessing GitHub
-        else if (responseTextGithub.equals("repoTimeout")) {
-            api.setMessage("GATEWAY_TIMEOUT");
-            return new ResponseEntity<>(HttpStatus.GATEWAY_TIMEOUT);
-        }
-        // E3 invalid special characters in repo name
-        else if (responseTextGithub.equals("repoSpecialCharacter")) {
-            api.setMessage("BAD_REQUEST");
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        // E4 API token invalid
-        else if (responseTextGithub.equals("repoInvalidToken")) {
-            api.setMessage("UNAUTHORIZED");
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-        // E5 API token not in header
-        else if (responseTextGithub.equals("repoMissingToken")) {
-            api.setMessage("UNAUTHORIZED");
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-        // E6 repo name not in body / empty string for repo name (only spaces, tabs, newline, …)
-        else if (responseTextGithub.equals("repoMissingName")) {
-            api.setMessage("BAD_REQUEST");
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        // E7 success
-        api.setMessage("OK");
-        api.setName(repo);
-        api.setHtml_url("https://github.com/<username>/" + repo);
-        return new ResponseEntity<>(api, HttpStatus.OK);
-    }
-    */
 }
