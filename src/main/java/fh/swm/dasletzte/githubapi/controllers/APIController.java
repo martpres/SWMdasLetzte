@@ -1,6 +1,4 @@
 package fh.swm.dasletzte.githubapi.controllers;
-
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -16,13 +14,21 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.ConnectException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This class is responsible for the interaction between the REST API and GitHub API
+ */
 @RestController
 public class APIController {
+    /**
+     * This method is repsonsible for providing the template for the communication
+     * between our API and GitHub API
+     * @param builder
+     * @return template to use
+     */
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
@@ -70,9 +76,6 @@ public class APIController {
             return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
 
-        System.out.println(token);
-        System.out.println(repoName);
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("authorization", token);
@@ -81,14 +84,12 @@ public class APIController {
         RestTemplate restTemplate = new RestTemplate();
 
         try {
-            // it could be, that the token has expired -> then we receive a 500 internal server error?
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
-                    "https://api.github.at/user/repos", entity, String.class);
+                    "https://api.github.com/user/repos", entity, String.class);
             statusCode = responseEntity.getStatusCodeValue();
             Map responseBodyMap = objectMapper.readValue(responseEntity.getBody(), Map.class);
             htmlUrl = responseBodyMap.get("html_url").toString();
         } catch (HttpClientErrorException hcEx) {
-            System.err.println("error");
             statusCode = hcEx.getRawStatusCode();
             try {
                 Map bodyErrorMap = objectMapper.readValue(hcEx.getResponseBodyAsString(), Map.class);
@@ -105,7 +106,6 @@ public class APIController {
             statusErrorMessage = "timeout access to github.com";
             statusCode = 504;
         }
-
         // E7 SUCCESS
         if (statusCode == 201 || statusCode == 200) {
             apiResponse.setRepoUrl(htmlUrl);
@@ -123,16 +123,7 @@ public class APIController {
             apiResponse.setMessage(statusErrorMessage);
             return new ResponseEntity<>(apiResponse, HttpStatus.GATEWAY_TIMEOUT);
         }
-
         // E3 and general error since special characters will be process by GitHub
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
-
-    @GetMapping("/api")
-    public ResponseEntity<String> getRepository(@RequestParam(value = "message") String message) {
-        if (message == null || message.equals("")) {
-            return new ResponseEntity<>("No repository name entered", HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

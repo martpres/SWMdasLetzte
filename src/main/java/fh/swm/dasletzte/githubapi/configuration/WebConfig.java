@@ -1,4 +1,4 @@
-package configuration;
+package fh.swm.dasletzte.githubapi.configuration;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
