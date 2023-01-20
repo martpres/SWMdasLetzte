@@ -60,9 +60,14 @@ public class APIController {
         jsonBody.put("repoName", repoName);
 
         // E5 TOKEN MISSING
-        if (token == null) {
+        if (token == null || token.isEmpty()) {
             apiResponse.setMessage("missing api token");
             return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
+        }
+        // E6 REPO NAME NOT IN BODY
+        if (repoName == null || repoName.isEmpty()) {
+            apiResponse.setMessage("repo name not in body");
+            return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
 
         System.out.println(token);
