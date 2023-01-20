@@ -92,16 +92,19 @@ public class APIController {
             htmlUrl = responseBodyMap.get("html_url").toString();
         } catch (HttpClientErrorException ex) {
             statusCode = ex.getRawStatusCode();
-            Map<String, Object> bodyErrorMap = objectMapper.readValue(ex.getResponseBodyAsString(), Map.class);
-            JSONObject json = new JSONObject(ex.getResponseBodyAsString());
-            JSONArray jsonArray = json.getJSONArray("errors");
-            JSONObject item = jsonArray.getJSONObject(0);
-            statusErrorMessage = item.get("message").toString();
-            System.out.println(item.get("message"));
-        } catch (MismatchedInputException ex) {
-            statusErrorMessage = "invalid token";
-            statusCode = 500;
+            try {
+                Map bodyErrorMap = objectMapper.readValue(ex.getResponseBodyAsString(), Map.class);
+                JSONObject json = new JSONObject(ex.getResponseBodyAsString());
+                JSONArray jsonArray = json.getJSONArray("errors");
+                JSONObject item = jsonArray.getJSONObject(0);
+                statusErrorMessage = item.get("message").toString();
+                System.out.println(item.get("message"));
+            } catch (MismatchedInputException ex2) {
+                statusErrorMessage = "invalid token";
+                statusCode = 500;
+            }
         }
+
         System.out.println("Status: " + statusCode);
 
         // E7 SUCCESS
