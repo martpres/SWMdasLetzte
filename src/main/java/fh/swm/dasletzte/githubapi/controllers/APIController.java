@@ -3,6 +3,7 @@ package fh.swm.dasletzte.githubapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import fh.swm.dasletzte.githubapi.models.response.ApiResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -80,8 +81,9 @@ public class APIController {
         headers.add("authorization", token);
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBodyMap, headers);
 
+        RestTemplate restTemplate = new RestTemplate();
+
         try {
-            RestTemplate restTemplate = new RestTemplate();
             // it could be, that the token has expired -> then we receive a 500 internal server error?
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
                     "https://api.github.com/user/repos", entity, String.class);
@@ -96,6 +98,9 @@ public class APIController {
             JSONObject item = jsonArray.getJSONObject(0);
             statusErrorMessage = item.get("message").toString();
             System.out.println(item.get("message"));
+        } catch (MismatchedInputException ex) {
+            statusErrorMessage = "invalid token";
+            statusCode = 500;
         }
         System.out.println("Status: " + statusCode);
 
@@ -107,6 +112,10 @@ public class APIController {
         } else if (statusCode == 422 && statusErrorMessage.equals("name already exists on this account")) {
             apiResponse.setMessage(statusErrorMessage);
             return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
+            // E4 INVALID OR EXPIRED TOKEN
+        } else if (statusCode == 500 && statusErrorMessage.equals("invalid token")) {
+            apiResponse.setMessage(statusErrorMessage);
+            return new ResponseEntity<>(apiResponse, HttpStatus.UNAUTHORIZED);
         }
 
         // E3 and general error since special characters will be process by GitHub
