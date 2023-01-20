@@ -109,6 +109,7 @@ public class APIController {
             return new ResponseEntity<>(apiResponse, HttpStatus.CONFLICT);
         }
 
+        // E3 and general error since special characters will be process by GitHub
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
