@@ -90,6 +90,6 @@ jar {
 	enabled = false
 	archiveClassifier.set("")
 	manifest {
-		attributes['Main-Class'] = 'fh.swm.dasletzte.githubapi.GithubapiApplication'
+		attributes['Main-Class'] = 'fh.swm.dasletzte.githubapi.GithubAPIApplication'
 	}
 }
