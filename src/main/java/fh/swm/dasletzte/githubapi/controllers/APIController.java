@@ -44,7 +44,7 @@ public class APIController {
      * @param postBody     json-formatted string with repo name
      * @return response via http
      */
-    @PostMapping("/apiv2")
+    @PostMapping("/gitRepository")
     public ResponseEntity<ApiResponse> createRepository(
             @RequestHeader Map<String, String> paramHeaders,
             @RequestBody Map<String, String> postBody) throws JsonProcessingException, JSONException {
