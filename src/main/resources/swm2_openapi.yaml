@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: BSWE3 SDFDS1 HA1 - RESTful application
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+  
+tags:
+  - name: Repository
+    description: Repostiory Endpoint - create new GitHub Repositories
+  
+paths:
+  /gitRepository:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Repository
+      summary: adds a new GitHub Repository
+      requestBody:
+        description: adds a new GitHub Repository
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepoPost'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/RepoPost'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RepoPost'
+      responses:
+        '201':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult201'
+
+        '400':
+          description: no repository name provided in parameter repoName
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult400'
+
+        '401':
+          description: no token provided or provided token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult401'
+                
+        '403':
+          description: provided token not authorized to perform this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult403'
+
+        '409':
+          description: a repository with the given name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult409'
+        '504':
+          description: github endpoint timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepoResult504'
+
+
+  
+components:
+  schemas:
+    RepoPost:
+      required:
+        - repoName
+      type: object
+      properties:
+        repoName:
+          type: string
+          example: TestRepo1
+
+
+    RepoResult201:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: https://github.com/TobiasPachta/TestRepo1
+        message:
+          type: string
+          example: 
+
+    RepoResult400:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: 
+        message:
+          type: string
+          example: repo name not in body
+
+    RepoResult401:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: 
+        message:
+          type: string
+          example: invalid token
+
+    RepoResult403:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: 
+        message:
+          type: string
+          example: forbidden
+
+    RepoResult409:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: 
+        message:
+          type: string
+          example: name already exists on this account
+
+    RepoResult504:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+          example: 
+        message:
+          type: string
+          example: timeout access to github.com
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - bearerAuth: []
+
+
+
